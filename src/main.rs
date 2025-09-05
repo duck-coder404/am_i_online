@@ -1,7 +1,8 @@
+use chrono::{self, Local, Timelike};
 use ping_rs::{self, send_ping};
 use std::net::{IpAddr, Ipv4Addr};
 use std::thread;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
 fn main() {
     println!("Hello, world!");
@@ -25,12 +26,13 @@ fn main() {
 
         // Check if the state has changed
         if previous_state != Some(current_state) {
+            let time = Local::now().hour().to_string() + ":" + &Local::now().minute().to_string();
             if current_state {
                 // Print in green
-                println!("\x1b[32m{:?} Yes, you are online\x1b[0m", SystemTime::now());
+                println!("\x1b[32m{:} Yes, you are online\x1b[0m", time);
             } else {
                 // Print in red
-                println!("\x1b[31m{:?} No, you are offline\x1b[0m", SystemTime::now());
+                println!("\x1b[31m{:} No, you are offline\x1b[0m", time);
             }
             // Update the previous state
             previous_state = Some(current_state);
