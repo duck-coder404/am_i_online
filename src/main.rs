@@ -25,6 +25,10 @@ struct Args {
     /// TTL (time to live)
     #[arg(long, default_value_t = 128)]
     ttl: u8,
+
+    /// Print errors
+    #[arg(short, long)]
+    print_errors: bool,
 }
 
 fn main() {
@@ -42,6 +46,7 @@ fn main() {
     let data = [1; 4];
     let timeout = Duration::from_secs(if ignore_timeout { 1 } else { args.timeout });
     let interval = Duration::from_secs(args.interval);
+    let print_errors = args.print_errors;
 
     let options = PingOptions {
         ttl: args.ttl,
@@ -64,7 +69,9 @@ fn main() {
                 println!("\x1b[32m{} Yes, you are online\x1b[0m", time);
             } else {
                 println!("\x1b[31m{} No, you are offline\x1b[0m", time);
-                println!("{:?}", current_state);
+                if print_errors {
+                    println!("{:?}", current_state);
+                }
             }
             previous_state = Some(current_state.is_ok());
         }
