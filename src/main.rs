@@ -13,8 +13,9 @@ struct Args {
     #[arg(short, long, default_value = "8.8.8.8")]
     address: IpAddr,
 
-    /// Timeout in seconds
-    #[arg(short, long, default_value_t = 2)]
+    /// Timeout in seconds,
+    /// set to 0 to ignore timeout errs
+    #[arg(short, long, default_value_t = 1)]
     timeout: u64,
 
     /// Interval between pings in seconds
@@ -36,8 +37,10 @@ fn main() {
     );
     println!("Press Ctrl+C to stop\n");
 
+    let ignore_timeout = args.timeout == 0;
+
     let data = [1; 4];
-    let timeout = Duration::from_secs(args.timeout);
+    let timeout = Duration::from_secs(if ignore_timeout { 1 } else { args.timeout });
     let interval = Duration::from_secs(args.interval);
 
     let options = PingOptions {
@@ -49,6 +52,11 @@ fn main() {
 
     loop {
         let current_state = send_ping(&args.address, timeout, &data, Some(&options));
+
+        if ignore_timeout && matches!(current_state, Err(ping_rs::PingError::TimedOut)) {
+            thread::sleep(interval);
+            continue;
+        }
 
         if previous_state != Some(current_state.is_ok()) {
             let time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
