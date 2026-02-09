@@ -6,7 +6,7 @@ use std::thread;
 use std::time::Duration;
 
 #[derive(Parser, Debug)]
-#[command(name = "ping-monitor")]
+#[command(name = "AmIOlnine")]
 #[command(about = "Monitor network connectivity with visual status changes", long_about = None)]
 struct Args {
     /// IP address to ping

@@ -1,5 +1,5 @@
 [package]
-name = "am_i_online"
+name = "AmIOnline"
 version = "0.1.0"
 edition = "2024"
 
