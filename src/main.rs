@@ -1,43 +1,66 @@
-use chrono::{self, Local, Timelike};
-use ping_rs::{self, send_ping};
-use std::net::{IpAddr, Ipv4Addr};
+use chrono::prelude::*;
+use clap::Parser;
+use ping_rs::{self, PingOptions, send_ping};
+use std::net::IpAddr;
 use std::thread;
 use std::time::Duration;
 
-fn main() {
-    println!("Hello, world!");
+#[derive(Parser, Debug)]
+#[command(name = "ping-monitor")]
+#[command(about = "Monitor network connectivity with visual status changes", long_about = None)]
+struct Args {
+    /// IP address to ping
+    #[arg(short, long, default_value = "8.8.8.8")]
+    address: IpAddr,
 
-    // Parse the IP address
-    let addr: IpAddr = IpAddr::V4(Ipv4Addr::new(142, 250, 180, 174));
-    // Prepare ping data
+    /// Timeout in seconds
+    #[arg(short, long, default_value_t = 2)]
+    timeout: u64,
+
+    /// Interval between pings in seconds
+    #[arg(short, long, default_value_t = 1)]
+    interval: u64,
+
+    /// TTL (time to live)
+    #[arg(long, default_value_t = 128)]
+    ttl: u8,
+}
+
+fn main() {
+    let args = Args::parse();
+
+    // Print the current settings to user
+    println!(
+        "Monitoring connectivity to {} (timeout: {}s, interval: {}s, TTL: {})",
+        args.address, args.timeout, args.interval, args.ttl
+    );
+    println!("Press Ctrl+C to stop\n");
+
     let data = [1; 4];
-    // Set timeout
-    let timeout = Duration::from_secs(1);
-    // Configure ping options (optional)
-    let options = ping_rs::PingOptions {
-        ttl: 128,
-        dont_fragment: true,
+    let timeout = Duration::from_secs(args.timeout);
+    let interval = Duration::from_secs(args.interval);
+
+    let options = PingOptions {
+        ttl: args.ttl,
+        dont_fragment: false,
     };
 
     let mut previous_state: Option<bool> = None;
 
     loop {
-        let current_state = send_ping(&addr, timeout, &data, Some(&options)).is_ok();
+        let current_state = send_ping(&args.address, timeout, &data, Some(&options));
 
-        // Check if the state has changed
-        if previous_state != Some(current_state) {
-            let time = Local::now().hour().to_string() + ":" + &Local::now().minute().to_string();
-            if current_state {
-                // Print in green
-                println!("\x1b[32m{:} Yes, you are online\x1b[0m", time);
+        if previous_state != Some(current_state.is_ok()) {
+            let time = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+            if current_state.is_ok() {
+                println!("\x1b[32m{} Yes, you are online\x1b[0m", time);
             } else {
-                // Print in red
-                println!("\x1b[31m{:} No, you are offline\x1b[0m", time);
+                println!("\x1b[31m{} No, you are offline\x1b[0m", time);
+                println!("{:?}", current_state);
             }
-            // Update the previous state
-            previous_state = Some(current_state);
+            previous_state = Some(current_state.is_ok());
         }
 
-        thread::sleep(Duration::new(1, 0)); // Sleep
+        thread::sleep(interval);
     }
 }
